@@ -2,6 +2,18 @@ import 'dotenv/config';
 import {PublicKey} from '@solana/web3.js';
 import {z} from 'zod';
 
+/**
+ * Treat an empty variable as absent.
+ *
+ * An unset variable in a .env file arrives as an empty string, not as undefined, so `.optional()`
+ * on its own rejects the shipped .env.example and refuses to start over settings the operator
+ * deliberately left blank. Every optional value below goes through this.
+ */
+function optional<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+}
+
+
 const pubkeySchema = z.string().refine(
   (value) => {
     try {
@@ -29,7 +41,7 @@ const envSchema = z.object({
 
   CLUSTER: z.enum(['mainnet-beta', 'devnet', 'testnet', 'localnet']).default('devnet'),
   RPC_URL: z.string().url(),
-  RPC_WS_URL: z.string().optional(),
+  RPC_WS_URL: optional(z.string()),
 
   /**
    * DAS-capable endpoint, for reading compressed NFTs.
@@ -37,7 +49,7 @@ const envSchema = z.object({
    * The public Solana endpoints do not implement DAS. Falls back to RPC_URL, and the service
    * reports clearly when the method is missing rather than failing opaquely.
    */
-  DAS_RPC_URL: z.string().url().optional(),
+  DAS_RPC_URL: optional(z.string().url()),
 
   PROGRAM_ID: pubkeySchema,
 
@@ -45,7 +57,26 @@ const envSchema = z.object({
   SIGNATURE_PAGE_SIZE: z.coerce.number().int().positive().max(1_000).default(500),
 
   /** Required for the allowlist upload route: publishing a root decides who can mint. */
-  ADMIN_API_KEY: z.string().min(16).optional(),
+  /**
+   * An unset variable in a .env file arrives as an empty string, not as undefined, so `.optional()`
+   * alone would reject the shipped .env.example and fail startup with a length complaint about a
+   * key the operator never set. Empty is normalised to absent first.
+   */
+  ADMIN_API_KEY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(16).optional(),
+  ),
+  /**
+   * Whether this process runs the indexer.
+   *
+   * Off lets the API serve seeded or already-indexed data without a chain connection, and lets the
+   * indexer run as its own process (`pnpm indexer`) without the API double-indexing behind it.
+   */
+  INDEXER_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -2,6 +2,18 @@ import 'dotenv/config';
 import {PublicKey} from '@solana/web3.js';
 import {z} from 'zod';
 
+/**
+ * Treat an empty variable as absent.
+ *
+ * An unset variable in a .env file arrives as an empty string, not as undefined, so `.optional()`
+ * on its own rejects the shipped .env.example and refuses to start over settings the operator
+ * deliberately left blank. Every optional value below goes through this.
+ */
+function optional<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+}
+
+
 /** A base58 Solana address, validated by actually constructing a PublicKey. */
 const pubkeySchema = z.string().refine(
   (value) => {
@@ -38,7 +50,7 @@ const envSchema = z.object({
    * Many providers serve HTTP and websockets on different hosts, and web3.js does not infer one
    * from the other reliably.
    */
-  RPC_WS_URL: z.string().optional(),
+  RPC_WS_URL: optional(z.string()),
 
   PROGRAM_ID: pubkeySchema,
 
@@ -53,7 +65,26 @@ const envSchema = z.object({
    *
    * Publishing a Merkle root decides who receives tokens, so those routes are not open.
    */
-  ADMIN_API_KEY: z.string().min(16).optional(),
+  /**
+   * An unset variable in a .env file arrives as an empty string, not as undefined, so `.optional()`
+   * alone would reject the shipped .env.example and fail startup with a length complaint about a
+   * key the operator never set. Empty is normalised to absent first.
+   */
+  ADMIN_API_KEY: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().min(16).optional(),
+  ),
+  /**
+   * Whether this process runs the indexer.
+   *
+   * Off lets the API serve seeded or already-indexed data without a chain connection, and lets the
+   * indexer run as its own process (`pnpm indexer`) without the API double-indexing behind it.
+   */
+  INDEXER_ENABLED: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
+
 });
 
 const parsed = envSchema.safeParse(process.env);
