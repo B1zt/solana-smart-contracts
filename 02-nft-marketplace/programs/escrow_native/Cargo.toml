@@ -1,0 +1,39 @@
+[package]
+name = "escrow_native"
+version = "0.1.0"
+description = "A minimal escrow written without Anchor, to show what the framework generates"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "escrow_native"
+
+[features]
+default = []
+no-entrypoint = []
+
+[dependencies]
+# No Anchor. Just the raw Solana program interface, so every check the framework would generate has
+# to be written out by hand.
+solana-program-entrypoint = "3.0.0"
+solana-account-info = "3.0.0"
+solana-program-error = "3.0.0"
+# The `borsh` feature is what implements BorshSerialize for Pubkey. Anchor pulls this in for you.
+solana-pubkey = { version = "3.0.0", features = ["borsh"] }
+solana-msg = "3.0.0"
+solana-cpi = "3.0.0"
+solana-instruction = "3.0.0"
+# The `bincode` feature is what exposes the instruction builders such as `create_account`.
+solana-system-interface = { version = "2.0.0", features = ["bincode"] }
+solana-rent = "3.0.0"
+solana-sysvar = "3.0.0"
+# `derive` for the macros. Without it only the traits are in scope, which compiles under a
+# workspace check thanks to feature unification and then fails the moment this crate is built alone.
+borsh = { version = "1.5.7", features = ["derive"] }
+
+[dev-dependencies]
+solana-pubkey = "3.0.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }

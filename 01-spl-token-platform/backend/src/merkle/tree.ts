@@ -1,5 +1,9 @@
-import {keccak256} from 'js-sha3';
+// js-sha3 is CommonJS and builds its exports dynamically, so Node's named-export detection
+// cannot see `keccak256`. A default import always gets module.exports, which does.
+import sha3 from 'js-sha3';
 import {PublicKey} from '@solana/web3.js';
+
+const {keccak256} = sha3;
 
 export interface AirdropEntry {
   index: number;

@@ -1,0 +1,137 @@
+// Indexed state for the NFT marketplace.
+//
+// Asset metadata is deliberately NOT stored here. It comes from DAS on demand, because a compressed
+// NFT has no account to read and its data lives in an indexer by design. Duplicating it would mean
+// maintaining a second copy that drifts from the one everyone else queries.
+//
+// What is stored is what DAS does not answer: listings, offers, sale history and rolled-up stats.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A collection created through the program.
+model Collection {
+  /// Collection PDA, base58.
+  address           String   @id
+  authority         String
+  treasury          String
+  name              String
+  baseUri           String
+  maxSupply         Int
+  minted            Int      @default(0)
+  royaltyBps        Int      @default(0)
+  royaltyRecipient  String
+  phaseCount        Int      @default(0)
+  /// Cheapest active listing in lamports. Null when nothing is listed.
+  floorPrice        String?
+  volume            String   @default("0")
+  updatedAt         DateTime @updatedAt
+
+  phases            MintPhase[]
+  listings          Listing[]
+  sales             Sale[]
+
+  @@index([authority])
+}
+
+model MintPhase {
+  /// Phase PDA.
+  address           String     @id
+  collectionAddress String
+  collection        Collection @relation(fields: [collectionAddress], references: [address], onDelete: Cascade)
+  index             Int
+  merkleRoot        String
+  price             String
+  startTs           DateTime
+  endTs             DateTime
+  maxPerWallet      Int
+  maxSupply         Int
+  minted            Int        @default(0)
+  updatedAt         DateTime   @updatedAt
+
+  entries           AllowlistEntry[]
+
+  @@unique([collectionAddress, index])
+}
+
+/// Allowlist entries for a phase.
+///
+/// The only table here that is not derivable from chain state: the on-chain root commits to these
+/// leaves without revealing them, so losing this means nobody can generate a proof again.
+model AllowlistEntry {
+  id           String    @id @default(cuid())
+  phaseAddress String
+  phase        MintPhase @relation(fields: [phaseAddress], references: [address], onDelete: Cascade)
+  wallet       String
+  allowance    Int
+
+  @@unique([phaseAddress, wallet])
+  @@index([wallet])
+}
+
+model Listing {
+  /// Listing PDA.
+  address           String     @id
+  seller            String
+  mint              String     @unique
+  escrow            String
+  collectionAddress String
+  collection        Collection @relation(fields: [collectionAddress], references: [address], onDelete: Cascade)
+  price             String
+  createdTs         DateTime
+  /// False once sold or delisted, so history survives.
+  isActive          Boolean    @default(true)
+  updatedAt         DateTime   @updatedAt
+
+  @@index([collectionAddress, isActive, price])
+  @@index([seller, isActive])
+}
+
+model Offer {
+  /// Offer PDA.
+  address    String   @id
+  buyer      String
+  mint       String
+  amount     String
+  expiresTs  DateTime
+  isActive   Boolean  @default(true)
+  updatedAt  DateTime @updatedAt
+
+  @@index([mint, isActive, amount])
+  @@index([buyer, isActive])
+}
+
+model Sale {
+  id                String     @id @default(cuid())
+  collectionAddress String
+  collection        Collection @relation(fields: [collectionAddress], references: [address], onDelete: Cascade)
+  mint              String
+  seller            String
+  buyer             String
+  price             String
+  fee               String
+  royalty           String
+  signature         String     @unique
+  slot              BigInt
+  blockTime         DateTime
+
+  @@index([collectionAddress, blockTime])
+  @@index([mint, blockTime])
+  @@index([seller])
+  @@index([buyer])
+}
+
+/// Indexing cursor. Solana paginates history by signature, not by block.
+model IndexerCursor {
+  id            String   @id
+  account       String   @unique
+  lastSignature String?
+  lastSlot      BigInt   @default(0)
+  updatedAt     DateTime @updatedAt
+}

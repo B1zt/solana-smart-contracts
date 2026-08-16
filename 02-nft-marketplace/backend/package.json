@@ -1,0 +1,42 @@
+{
+  "name": "@b1zt/solana-nft-marketplace-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DAS-backed NFT indexer, allowlist proof service and marketplace API",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "indexer": "tsx src/indexer/main.ts",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.31.1",
+    "@fastify/cors": "^10.0.1",
+    "@fastify/rate-limit": "^10.2.1",
+    "@prisma/client": "^6.2.1",
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "js-sha3": "^0.9.3",
+    "pino": "^9.6.0",
+    "pino-pretty": "^13.0.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.6",
+    "prisma": "^6.2.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

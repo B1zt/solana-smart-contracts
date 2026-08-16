@@ -28,17 +28,17 @@ export default function HomePage() {
       <section className="grid gap-4 sm:grid-cols-3">
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Cluster</p>
-          <p className="mt-1 text-2xl font-semibold capitalize">{status?.cluster ?? '—'}</p>
+          <p className="mt-1 text-2xl font-semibold capitalize">{status?.cluster ?? '-'}</p>
         </div>
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Slot</p>
           <p className="mt-1 text-2xl font-semibold tabular-nums">
-            {status?.slot.toLocaleString() ?? '—'}
+            {status?.slot.toLocaleString() ?? '-'}
           </p>
         </div>
         <div className="card">
           <p className="text-xs uppercase tracking-wide text-neutral-500">Staking pools</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{pools?.pools.length ?? '—'}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{pools?.pools.length ?? '-'}</p>
         </div>
       </section>
 

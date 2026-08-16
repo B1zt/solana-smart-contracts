@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: solnft-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: solnft
+      POSTGRES_PASSWORD: solnft
+      POSTGRES_DB: solnft
+    # Port 5437 so this runs alongside the other projects' databases.
+    ports:
+      - "5437:5432"
+    volumes:
+      - solnft-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solnft -d solnft"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  solnft-data:

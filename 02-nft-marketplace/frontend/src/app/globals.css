@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-neutral-800 bg-neutral-900/50 p-5;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn bg-violet-500 text-white hover:bg-violet-400;
+  }
+
+  .btn-secondary {
+    @apply btn border border-neutral-700 bg-neutral-900 text-neutral-200 hover:bg-neutral-800;
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-neutral-700 bg-neutral-950 px-3 py-2.5 text-sm
+      text-neutral-100 outline-none placeholder:text-neutral-600 focus:border-violet-500;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-medium uppercase tracking-wide text-neutral-500;
+  }
+}
+
+/* The wallet adapter ships its own button styling. Aligning it with the rest of the UI avoids the
+   jarring purple default that marks out every unstyled Solana app. */
+@layer components {
+  .wallet-adapter-button-trigger {
+    @apply !rounded-lg !bg-violet-500 !px-4 !py-2.5 !text-sm !font-medium !text-white
+      hover:!bg-violet-400;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    @apply !bg-neutral-900;
+  }
+}
+
+/* Align the wallet adapter's own button with the rest of the UI. */
+@layer components {
+  .wallet-adapter-button-trigger {
+    @apply !rounded-lg !bg-violet-500 !px-4 !py-2.5 !text-sm !font-medium !text-white
+      hover:!bg-violet-400;
+  }
+
+  .wallet-adapter-modal-wrapper {
+    @apply !bg-neutral-900;
+  }
+}
