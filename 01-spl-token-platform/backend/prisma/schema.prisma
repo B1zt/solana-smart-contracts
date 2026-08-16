@@ -1,0 +1,156 @@
+// Indexed state for the SPL token platform.
+//
+// Everything except `AirdropEntry` is derivable from chain state and can be dropped and rebuilt.
+// The allocation list is the exception: the on-chain root commits to those leaves without revealing
+// them, so losing this table means nobody can ever generate a proof again.
+//
+// Solana amounts are u64 rather than uint256, so they would fit in a JS number up to 2^53. They are
+// still stored as strings, because a 9-decimal token crosses that boundary at nine million tokens,
+// which is not a large supply.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// One airdrop allocation, and the source of truth the Merkle tree is built from.
+///
+/// `index` is load-bearing twice over: it is part of the leaf, and it is a seed of the on-chain
+/// claim PDA. Once a root is published it can never be renumbered.
+model AirdropEntry {
+  id        String    @id @default(cuid())
+  /// Distributor this allocation belongs to, as a base58 address.
+  distributor String
+  index     Int
+  claimant  String
+  amount    String
+  /// Set once the on-chain Claimed event is observed.
+  claimedAt DateTime?
+  claimTx   String?
+  createdAt DateTime  @default(now())
+
+  @@unique([distributor, index])
+  @@unique([distributor, claimant])
+  @@index([claimant])
+  @@index([distributor, claimedAt])
+}
+
+/// A published Merkle root, kept so a mismatch with the deployed distributor is detectable.
+model AirdropRoot {
+  id          String   @id @default(cuid())
+  distributor String   @unique
+  root        String
+  entryCount  Int
+  totalAmount String
+  deadline    DateTime
+  createdAt   DateTime @default(now())
+}
+
+/// Mirror of an on-chain vesting schedule.
+model VestingSchedule {
+  /// The schedule PDA, base58.
+  address         String   @id
+  beneficiary     String
+  authority       String
+  mint            String
+  vault           String
+  totalAmount     String
+  releasedAmount  String   @default("0")
+  startTs         DateTime
+  cliffSeconds    Int
+  durationSeconds Int
+  revocable       Boolean
+  revoked         Boolean  @default(false)
+  seed            String
+  updatedAt       DateTime @updatedAt
+
+  releases        VestingRelease[]
+
+  @@index([beneficiary])
+  @@index([authority])
+}
+
+model VestingRelease {
+  id          String          @id @default(cuid())
+  scheduleAddress String
+  schedule    VestingSchedule @relation(fields: [scheduleAddress], references: [address], onDelete: Cascade)
+  amount      String
+  signature   String
+  slot        BigInt
+  blockTime   DateTime
+
+  // A Solana signature identifies a transaction uniquely, which is what makes reindexing safe.
+  @@unique([signature])
+  @@index([scheduleAddress, blockTime])
+}
+
+/// Mirror of an on-chain staking pool.
+model StakePool {
+  address         String   @id
+  authority       String
+  stakeMint       String
+  rewardMint      String
+  stakeVault      String
+  rewardVault     String
+  totalStaked     String   @default("0")
+  rewardRate      String   @default("0")
+  rewardEndTs     DateTime
+  cooldownSeconds Int      @default(0)
+  /// Annualised rate in basis points, derived from emissions and total staked.
+  aprBps          Int      @default(0)
+  updatedAt       DateTime @updatedAt
+
+  positions       StakePosition[]
+  snapshots       PoolSnapshot[]
+}
+
+model StakePosition {
+  id           String    @id @default(cuid())
+  poolAddress  String
+  pool         StakePool @relation(fields: [poolAddress], references: [address], onDelete: Cascade)
+  /// The stake account PDA.
+  address      String    @unique
+  owner        String
+  amount       String    @default("0")
+  pendingReward String   @default("0")
+  unstakingAmount String @default("0")
+  unstakeReadyTs DateTime?
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([poolAddress, owner])
+  @@index([owner])
+}
+
+/// Periodic APR and TVL sample.
+///
+/// Neither figure emits anything: they are continuous functions of emissions and total staked, so
+/// sampling is the only way to have a history to chart.
+model PoolSnapshot {
+  id          String    @id @default(cuid())
+  poolAddress String
+  pool        StakePool @relation(fields: [poolAddress], references: [address], onDelete: Cascade)
+  totalStaked String
+  aprBps      Int
+  slot        BigInt
+  capturedAt  DateTime
+
+  @@index([poolAddress, capturedAt])
+}
+
+/// Indexing cursor per program account.
+///
+/// Solana has no block-range scan. Backfilling means walking `getSignaturesForAddress` backwards
+/// from the newest signature, so the cursor stores the newest signature already processed and each
+/// pass fetches everything after it.
+model IndexerCursor {
+  id             String   @id
+  /// Account whose signature history is being followed.
+  account        String   @unique
+  lastSignature  String?
+  lastSlot       BigInt   @default(0)
+  updatedAt      DateTime @updatedAt
+}

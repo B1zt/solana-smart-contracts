@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: solplatform-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: solplatform
+      POSTGRES_PASSWORD: solplatform
+      POSTGRES_DB: solplatform
+    # Port 5436 so this runs alongside the EVM projects' databases.
+    ports:
+      - "5436:5432"
+    volumes:
+      - solplatform-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solplatform -d solplatform"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  solplatform-data:

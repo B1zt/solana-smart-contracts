@@ -1,0 +1,39 @@
+# Foundry
+out/
+cache/
+broadcast/*/dry-run/
+lcov.info
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Env and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Anchor / Solana
+target/
+.anchor/
+test-ledger/
+**/*.rs.bk
+
+# Cargo.lock IS committed. A deployed Solana program should be reproducibly buildable, and that
+# requires pinning the exact dependency graph the .so was built from.
+

@@ -1,0 +1,43 @@
+[package]
+name = "token_platform"
+version = "0.1.0"
+description = "SPL token launch, vesting, Merkle airdrop and staking"
+edition.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "token_platform"
+
+[features]
+default = []
+cpi = ["no-entrypoint"]
+no-entrypoint = []
+no-log-ix-name = []
+idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+anchor-debug = []
+custom-heap = []
+custom-panic = []
+
+[dependencies]
+anchor-lang = { version = "1.1.2", features = ["init-if-needed", "event-cpi"] }
+# token_2022 so the same instructions work against both token programs. New launches increasingly
+# want Token-2022 extensions, and supporting only the legacy program dates the code immediately.
+anchor-spl = { version = "1.1.2", features = ["token", "associated_token", "token_2022"] }
+# Solana 3.x split the monolithic solana-program crate apart; keccak now ships on its own.
+solana-keccak-hasher = "3.1.0"
+
+[dev-dependencies]
+litesvm = "0.10.0"
+solana-message = "3.0.1"
+solana-transaction = "3.0.2"
+solana-signer = "3.0.0"
+solana-keypair = "3.0.1"
+solana-instruction = "3.0.0"
+solana-pubkey = "3.0.0"
+solana-account = "3.0.0"
+solana-program-error = "3.0.0"
+solana-clock = "3.0.0"
+
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(target_os, values("solana"))'] }
